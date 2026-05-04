@@ -18,6 +18,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Тома для данных
-VOLUME ["/app/data"]
 
 CMD ["python", "main.py"]
