@@ -11,7 +11,7 @@ if ROOT not in sys.path:
 load_dotenv(Path(ROOT) / ".env")
 
 from aiogram import Bot, Dispatcher
-from aiogram_sqlite_storage.sqlitestore import SQLStorage
+from services.fsm_storage import SQLiteStorage
 from app_config.settings import settings
 from db.connection import init_db
 
@@ -26,7 +26,7 @@ async def main():
     print(f"🔑 {pool}")
     
     bot = Bot(token=settings.BOT_TOKEN)
-    dp = Dispatcher(storage=SQLStorage("data/fsm.db"))
+    dp = Dispatcher(storage=SQLiteStorage())
     
     import importlib
     handlers = [
