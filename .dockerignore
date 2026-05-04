@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+*.db
+*.log
+*.pid
+data/backups
+data/doctor.log
+data/server.pid
+.git
+.gitignore
+.env.bak
+*.md

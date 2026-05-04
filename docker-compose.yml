@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - TZ=Asia/Vladivostok
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; os.path.exists('data/zabota.db')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Опционально: PostgreSQL вместо SQLite при росте
+  # postgres:
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: zabota
+  #     POSTGRES_USER: zabota
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+  doctor:
+    build: .
+    restart: unless-stopped
+    command: python run_doctor.py --watch
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    depends_on:
+      - bot
+
+# volumes:
+#   postgres_data:

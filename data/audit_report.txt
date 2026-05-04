@@ -1,0 +1,37 @@
+═══════════════════════════════════════════════════════
+  🩺 АУДИТ ZABOTA_PLUS — Mon May  4 19:18:18 +05 2026
+═══════════════════════════════════════════════════════
+
+✅ main.py НЕ содержит DoctorSystem — Доктор и бот разделены
+✅ doctor_system НЕ запускает main.py — Нет рекурсии
+✅ run_bot.py без DoctorSystem — Чистый бот
+✅ Таблица hobbies создаётся — Есть в init_db()
+✅ Таблица food_preferences создаётся — Есть в init_db()
+✅ Таблица mood_triggers создаётся — Есть в init_db()
+✅ Таблица hobbies в базе — Физически существует
+✅ Таблица food_preferences в базе — Физически существует
+✅ Таблица mood_triggers в базе — Физически существует
+✅ Сохранение хобби — Есть INSERT в hobbies
+✅ Сохранение еды — Есть INSERT в food_preferences
+✅ Сохранение триггеров — Есть INSERT в mood_triggers
+✅ Сохранение дел — Есть INSERT в chores
+✅ f-string в UPDATE — Нет инъекции f-string
+✅ Whitelist полей — Есть ограничение допустимых полей
+✅ Контекстный менеджер — Есть async with get_db()
+⚠️  Прямых вызовов get_db() — 1 мест с ручным conn = await get_db()
+✅ Утечки соединений — Все get_db() закрываются
+✅ /buy handler — Только в shopping_tracker.py
+✅ main.py импортирует shopping_tracker — Правильный модуль
+✅ Хардкод LEVIATHAN пути — Используется leviathan-core пакет
+✅ Импорт из пакета — from leviathan.core import KeyPool
+✅ main.py: Persistent storage — FSM сохраняется
+✅ run_bot.py: Persistent storage — FSM сохраняется
+✅ Строковые ошибки Gemini — Используются исключения
+✅ Обработка ошибок в handlers — Все вызовы ask() обёрнуты
+✅ companion.py router — Есть router, но он не подключается
+✅ handlers/message.py — Есть обработчик свободного текста
+✅ message handler в main — Подключён
+
+═══════════════════════════════════════════════════════
+  ИТОГО: PASS=28 FAIL=0 WARN=1
+═══════════════════════════════════════════════════════

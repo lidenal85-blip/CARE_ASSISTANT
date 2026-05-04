@@ -1,0 +1,26 @@
+# Секреты
+.env
+*.bak
+*.db
+*.log
+*.pid
+
+# Кэш Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Система
+Thumbs.db
+.DS_Store
+data/doctor.log
+data/server.pid
+data/zabota.db
+
+# Бэкапы
+data/backups/
