@@ -40,3 +40,21 @@ services:
 
 # volumes:
 #   postgres_data:
+
+  doctor:
+    build: .
+    restart: unless-stopped
+    command: python run_doctor.py --watch
+    env_file:
+      - .env
+    depends_on:
+      - bot
+
+  doctor-monitor:
+    build: .
+    restart: unless-stopped
+    command: python engine/doctor_monitor.py
+    env_file:
+      - .env
+    depends_on:
+      - bot
