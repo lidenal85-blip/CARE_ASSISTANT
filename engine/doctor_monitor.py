@@ -162,7 +162,7 @@ class DoctorMonitor:
 
 async def main():
     token = os.getenv("BOT_TOKEN", "")
-    admin_id = 0  # ← ЗАМЕНИ НА СВОЙ TELEGRAM ID!!!  # ← замени на свой Telegram ID
+    admin_id = 7709651193  # ← замени на свой Telegram ID
     
     if not token:
         print("❌ BOT_TOKEN не установлен")
