@@ -104,6 +104,10 @@ class OnboardingEngine:
         if existing:
             user_id = existing["id"]
         else:
+            existing = await UserRepo.get_by_telegram(message.from_user.id)
+        if existing:
+            user_id = existing["id"]
+        else:
             user_id = await UserRepo.create(message.from_user.id)
         await UserRepo.update(user_id,
             name=data.get("name"), age=data.get("age"),
