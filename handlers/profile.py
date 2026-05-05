@@ -94,12 +94,28 @@ async def cmd_profile(message: Message):
         text += f"  🔥 Стрик: {days // 7} недель подряд!\n"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➕ Добавить данные", callback_data="add_profile")],
         [InlineKeyboardButton(text="✏️ Изменить данные", callback_data="edit_profile")],
         [InlineKeyboardButton(text="📋 План на сегодня", callback_data="plan_today")],
         [InlineKeyboardButton(text="📊 Отчёт за неделю", callback_data="weekly_report")],
     ])
     
     await message.answer(text, parse_mode="Markdown", reply_markup=keyboard)
+@router.callback_query(F.data == "add_profile")
+async def add_profile(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.clear()
+    from keyboards.reply import ReplyKeyboardMarkup, KeyboardButton
+    def _kb_skip(*buttons):
+        return ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text=b) for b in buttons], [KeyboardButton(text="Пропустить ➡️")]],
+            resize_keyboard=True, one_time_keyboard=True)
+    await callback.message.answer(
+        "📋 *Добавить данные*\nДля более точного меню и рекомендаций.\nМожно пропускать.",
+        parse_mode="Markdown",
+        reply_markup=_kb_skip("15 минут", "30 минут", "Час", "Не важно"))
+    await state.set_state(Onboarding.cooking_time)
+
 @router.callback_query(F.data == "edit_profile")
 async def edit_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
