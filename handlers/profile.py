@@ -1,8 +1,10 @@
 """handlers/profile.py — 👤 Профиль с геймификацией"""
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from db.repository import UserRepo
+from aiogram.fsm.context import FSMContext
+from states.onboarding import Onboarding
 import json
 from datetime import date, timedelta
 
@@ -98,3 +100,21 @@ async def cmd_profile(message: Message):
     ])
     
     await message.answer(text, parse_mode="Markdown", reply_markup=keyboard)
+@router.callback_query(F.data == "edit_profile")
+async def edit_profile(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    await state.clear()
+    
+    from keyboards.reply import ReplyKeyboardMarkup, KeyboardButton
+    
+    def _kb_skip(*buttons):
+        return ReplyKeyboardMarkup(
+            keyboard=[[KeyboardButton(text=b) for b in buttons], [KeyboardButton(text="Пропустить ➡️")]],
+            resize_keyboard=True, one_time_keyboard=True)
+    
+    await callback.message.answer(
+        "📋 *Расширенный профиль*\nУлучшит меню и рекомендации.\nМожно пропускать кнопкой «Пропустить ➡️»",
+        parse_mode="Markdown",
+        reply_markup=_kb_skip("15 минут", "30 минут", "Час", "Не важно"))
+    await state.set_state(Onboarding.cooking_time)
+
