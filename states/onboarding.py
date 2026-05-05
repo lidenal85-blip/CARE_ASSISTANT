@@ -1,42 +1,32 @@
-"""
-states/onboarding.py — FSM 18 шагов онбординга
-"""
+"""states/onboarding.py — FSM 27 шагов онбординга"""
 from aiogram.fsm.state import State, StatesGroup
 
 class Onboarding(StatesGroup):
-    # Шаг 1: Имя
-    name = State()
-    # Шаг 2: Возраст
-    age = State()
-    # Шаг 3: Пол
-    gender = State()
-    # Шаг 4: Вес
-    weight = State()
-    # Шаг 5: Рост
-    height = State()
-    # Шаг 6: График работы
-    work = State()
-    # Шаг 7: Подъём
-    wake_up = State()
-    # Шаг 8: Отбой
-    sleep_time = State()
-    # Шаг 9: Часы сна
-    sleep_hours = State()
-    # Шаг 10: Уровень стресса
-    stress = State()
-    # Шаг 11: Активность
-    activity = State()
-    # Шаг 12: Хобби
-    hobby = State()
-    # Шаг 13: Бытовые дела
-    chores = State()
-    # Шаг 14: Здоровье
-    health = State()
-    # Шаг 15: Еда
-    food_pref = State()
-    # Шаг 16: Главная цель
-    goal = State()
-    # Шаг 17: Бюджет
-    budget = State()
-    # Шаг 18: Триггеры настроения
-    mood_triggers = State()
+    name = State()              # 1
+    age = State()               # 2
+    gender = State()            # 3
+    weight = State()            # 4
+    height = State()            # 5
+    body_type = State()         # 6
+    eating_behavior = State()   # 7
+    cooking_time = State()      # 8
+    kitchen_equipment = State() # 9
+    region = State()            # 10
+    medical_conditions = State()# 11
+    fitness_goal = State()      # 12
+    takes_supplements = State() # 13
+    cooking_for = State()       # 14
+    work = State()              # 15
+    wake_up = State()           # 16
+    sleep_time = State()        # 17
+    sleep_hours = State()       # 18
+    stress = State()            # 19
+    activity = State()          # 20
+    hobby = State()             # 21
+    chores = State()            # 22
+    health = State()            # 23
+    food_pref = State()         # 24
+    goal = State()              # 25
+    budget = State()            # 26
+    mood_triggers = State()     # 27
+    cycle_tracking = State()

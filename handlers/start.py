@@ -6,6 +6,7 @@ from aiogram.types import Message
 from states.onboarding import Onboarding
 from db.repository import UserRepo
 from keyboards.reply import MAIN_KB
+from engine.onboarding_engine import engine
 
 router = Router()
 
@@ -21,7 +22,6 @@ async def cmd_start(message: Message, state: FSMContext):
             parse_mode="Markdown", reply_markup=MAIN_KB)
         return
     
-    # Первый вопрос из JSON
     first = engine.config["basic"][0]
     await message.answer(first["ask"])
     await state.set_state(Onboarding.name)
