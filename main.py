@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""main.py — ТОЛЬКО БОТ."""
+"""main.py — бот Забота+"""
 import asyncio, sys, os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -11,31 +11,31 @@ if ROOT not in sys.path:
 load_dotenv(Path(ROOT) / ".env")
 
 from aiogram import Bot, Dispatcher
-from services.fsm_storage import SQLiteStorage
+from aiogram.fsm.storage.memory import MemoryStorage
 from app_config.settings import settings
 from db.connection import init_db
-
-# KeyPool v2 инициализируется автоматически при первом вызове get_pool()
 from leviathan.core import get_pool
+from engine.onboarding_engine import router as onboarding_router
 
 async def main():
     await init_db()
-    
-    # Форсируем инициализацию KeyPool
     pool = get_pool()
     print(f"🔑 {pool}")
     
     bot = Bot(token=settings.BOT_TOKEN)
-    dp = Dispatcher(storage=SQLiteStorage())
+    dp = Dispatcher(storage=MemoryStorage())
     
+    # Движок онбординга
+    dp.include_router(onboarding_router)
+    
+    # Остальные хендлеры
     import importlib
-from engine.onboarding_engine import router as onboarding_router
     handlers = [
-        "profile","shopping_tracker","diet","notes",
-        "recipes","feedback","hobby","economy","guests","share","message"
+        "start", "menu", "water", "mood", "plan",
+        "profile", "shopping_tracker", "diet", "notes",
+        "recipes", "feedback", "hobby", "economy", "guests", "share", "message"
     ]
     
-    dp.include_router(onboarding_router)
     for mod_name in handlers:
         try:
             mod = importlib.import_module(f"handlers.{mod_name}")
