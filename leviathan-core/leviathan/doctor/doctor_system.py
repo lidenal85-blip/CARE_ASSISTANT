@@ -6,6 +6,7 @@ import ast, sys, os, shutil, time, httpx
 from pathlib import Path
 from datetime import datetime
 from .smart_patcher import SmartPatcher
+from .knowledge_base import KnowledgeBase
 
 G='\033[32m'; R='\033[31m'; Y='\033[33m'; C='\033[36m'; B='\033[1m'; X='\033[0m'
 
@@ -17,7 +18,8 @@ class DoctorSystem:
         self.key = self._find_key()
         self.attempt = 0
         self.failed_files = {}
-        self.patcher = SmartPatcher(str(self.ROOT))  # ← SmartPatcher!
+        self.patcher = SmartPatcher(str(self.ROOT))
+        self.kb = KnowledgeBase()  # ← SmartPatcher!
     
     def _find_key(self):
         for i in range(1, 15):
@@ -32,6 +34,30 @@ class DoctorSystem:
         with open(self.LOG, "a") as f:
             f.write(f"[{ts}] {msg}\n")
     
+    
+    def check_runtime_errors(self):
+        """Проверяет логи бота на рантайм-ошибки"""
+        bot_log = self.ROOT / "data" / "bot.log"
+        if not bot_log.exists():
+            return []
+        
+        errors = []
+        try:
+            lines = bot_log.read_text().split("\n")
+            for line in lines[-100:]:  # последние 100 строк
+                if "ERROR" in line or "Traceback" in line:
+                    errors.append(line.strip()[:200])
+        except Exception:
+            pass
+        
+        if errors:
+            self.log(f"📋 Найдено {len(errors)} ошибок в логах бота", Y)
+            for e in errors[-5:]:  # последние 5
+                self.log(f"   {e}", R)
+        
+        return errors
+
+
     def scan_all(self):
         """Сканирует все .py файлы через AST"""
         errors = []
@@ -201,6 +227,7 @@ Return the complete fixed file in ```python ... ``` block."""
                 try:
                     ast.parse(fixed_content)
                     self.log(f"✅ Gemini исправил: {f.name}", G)
+                    self.kb.log_case(err.msg, f.name, err.lineno, fixed_content[:200])
                     fixed += 1
                     continue
                 except SyntaxError:
@@ -236,7 +263,8 @@ Return the complete fixed file in ```python ... ``` block."""
         while True:
             try:
                 errors = self.scan_all()
-                if errors:
+                runtime = self.check_runtime_errors()
+                if errors or runtime:
                     self.log(f"⚠ Ошибок: {len(errors)}", Y)
                     self.run_once()
                 time.sleep(interval)
