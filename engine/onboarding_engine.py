@@ -100,7 +100,11 @@ class OnboardingEngine:
         data = await state.get_data()
         from keyboards.reply import MAIN_KB
         
-        user_id = await UserRepo.create(message.from_user.id)
+        existing = await UserRepo.get_by_telegram(message.from_user.id)
+        if existing:
+            user_id = existing["id"]
+        else:
+            user_id = await UserRepo.create(message.from_user.id)
         await UserRepo.update(user_id,
             name=data.get("name"), age=data.get("age"),
             gender=data.get("gender"), weight=data.get("weight"),
@@ -112,7 +116,7 @@ class OnboardingEngine:
         if data.get("gender") == "Женский":
             bmr = 447.6 + (9.2 * w) + (3.1 * h) - (4.3 * a)
         else:
-            bmr = 88.36 + (13.4 * w) + (4.8 * h) - (5.7 * a)
+            bmr = 88.36 + (13.4 * float(w)) + (4.8 * float(h)) - (5.7 * float(a))
         
         await message.answer(
             f"✨ *{data.get('name', 'Подруга')}, готово!*\n\n"
