@@ -1,14 +1,12 @@
-"""
-handlers/diet.py — 🥗 Индивидуальная диета
-"""
+"""handlers/diet.py — 🥗 Диета через menu_engine"""
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
-from db.repository import UserRepo, MealRepo
-from services.diet_planner import create_individual_diet, format_diet_message
-from services.price_checker import get_prices_for_shopping_list
+from db.repository import UserRepo
+from engine.menu_engine import get_or_create_menu, format_menu, profile_hash
 from services.gemini import GeminiError
 from keyboards.reply import MAIN_KB
+import json
 
 router = Router()
 
@@ -20,48 +18,32 @@ async def cmd_diet(message: Message):
         await message.answer("Сначала /start", reply_markup=MAIN_KB)
         return
     
-    # Сразу отвечаем что начали
     msg = await message.answer("🥗 *Составляю меню...*", parse_mode="Markdown")
     
+    # Собираем профиль для хеша
+    profile = {
+        "goal": user.get("goals", [{}])[0].get("type", "здоровье") if user.get("goals") else "здоровье",
+        "weight": user.get("weight", 60),
+        "height": user.get("height", 165),
+        "activity": user.get("activity", "умеренная"),
+        "budget": (user.get("food_preferences", {}) or {}).get("budget", "средний"),
+        "loved": json.loads((user.get("food_preferences", {}) or {}).get("loved", "[]") or "[]"),
+        "hated": json.loads((user.get("food_preferences", {}) or {}).get("hated", "[]") or "[]"),
+    }
+    
     try:
-        data = await create_individual_diet(message.from_user.id, user)
-        
-        if not data:
+        menu = await get_or_create_menu(profile)
+        if menu:
+            text = format_menu(menu)
+            await msg.edit_text(text, parse_mode="Markdown")
+            await message.answer(
+                f"💡 *Сохранено в базу*: {profile_hash(profile)}\n"
+                "В следующий раз — мгновенно!",
+                parse_mode="Markdown", reply_markup=MAIN_KB)
+        else:
             await msg.edit_text("❌ Не получилось. Попробуй позже.")
-            return
-        
-        from datetime import date, timedelta
-        today = date.today()
-        week_start = today - timedelta(days=today.weekday())
-        await MealRepo.save_week(user["id"], week_start.isoformat(), data["meals"])
-        
-        text = format_diet_message(data)
-        await msg.edit_text(text, parse_mode="Markdown")
-        
-        region = "Хабаровск"
-        priced = await get_prices_for_shopping_list(data["shopping"], region)
-        
-        shop_text = f"🛒 *Список покупок* ({priced['region']}, {priced['date']})\n\n"
-        shop_text += "```\n"
-        shop_text += "Продукт          Кол-во   Цена    Сумма\n"
-        shop_text += "─" * 42 + "\n"
-        
-        for item in priced["items"]:
-            name = item["item"][:15].ljust(15)
-            amount = item["amount"][:7].ljust(7)
-            price = str(item["price_per_unit"]).rjust(5)
-            total = str(item["total"]).rjust(6)
-            shop_text += f"{name} {amount} {price}₽ {total}₽\n"
-        
-        shop_text += "─" * 42 + "\n"
-        shop_text += f"{'ИТОГО':>34} {priced['total']}₽\n"
-        shop_text += "```\n"
-        shop_text += f"📍 Цены актуальны для {priced['region']}"
-        
-        await message.answer(shop_text, parse_mode="Markdown", reply_markup=MAIN_KB)
-        
     except GeminiError:
         await msg.edit_text("😔 Сервер Google перегружен. Попробуй через минуту.")
     except Exception as e:
-        await msg.edit_text(f"❌ Ошибка. Попробуй позже.")
+        await msg.edit_text("❌ Ошибка. Попробуй позже.")
         print(f"Diet error: {e}")
