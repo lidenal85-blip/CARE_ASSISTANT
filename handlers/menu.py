@@ -13,6 +13,7 @@ import json
 
 router = Router()
 
+@router.message(F.text == "🍽 Меню")
 @router.message(Command("menu"))
 async def cmd_menu(message: Message):
     user = await UserRepo.get_profile(message.from_user.id)
