@@ -1,0 +1,21 @@
+{
+  "basic": [
+    {"id": "name", "ask": "Привет! Я Забота+. Давай знакомиться!\nКак тебя зовут?", "type": "text", "save_to": "name"},
+    {"id": "age", "ask": "Сколько тебе лет? (просто число)", "type": "text", "validate": "int", "save_to": "age"},
+    {"id": "gender", "ask": "Твой пол?", "type": "buttons", "options": ["Женский", "Мужской"], "save_to": "gender"},
+    {"id": "weight", "ask": "Какой у тебя вес? (в кг)", "type": "text", "validate": "float", "save_to": "weight"},
+    {"id": "height", "ask": "Какой рост? (в см)", "type": "text", "validate": "float", "save_to": "height"},
+    {"id": "goal", "ask": "Какая главная цель?", "type": "buttons", "options": ["Похудеть", "Набрать вес", "Здоровье", "Больше энергии"], "save_to": "goal"},
+    {"id": "budget", "ask": "Какой бюджет на еду?", "type": "buttons", "options": ["Эконом", "Средний", "Премиум"], "save_to": "budget"}
+  ],
+  "extended": [
+    {"id": "cooking_time", "ask": "Сколько времени готов тратить на еду?", "type": "buttons", "options": ["15 минут", "30 минут", "Час", "Не важно"], "skip": true, "save_to": "cooking_time"},
+    {"id": "kitchen_equipment", "ask": "Что есть на кухне?", "type": "buttons", "options": ["Духовка", "Мультиварка", "Блендер", "Только плита"], "skip": true, "save_to": "kitchen_equipment"},
+    {"id": "region", "ask": "В каком городе живёшь?", "type": "buttons", "options": ["Хабаровск", "Москва", "Владивосток", "Другой"], "skip": true, "save_to": "region"},
+    {"id": "stress", "ask": "Какой уровень стресса?", "type": "buttons", "options": ["Низкий", "Средний", "Высокий"], "skip": true, "save_to": "stress"},
+    {"id": "activity", "ask": "Физическая активность?", "type": "buttons", "options": ["Сидячая", "1-2 тренировки", "3+ тренировок"], "skip": true, "save_to": "activity"},
+    {"id": "health", "ask": "Есть аллергии или непереносимости? Напиши кратко или нажми «Пропустить»", "type": "text", "skip": true, "save_to": "health"},
+    {"id": "food_pref", "ask": "Любимые и нелюбимые продукты?\nНапиши: любимое, ещё любимое, не люблю то, это", "type": "text", "skip": true, "save_to": "food_pref"},
+    {"id": "cycle_tracking", "ask": "Отслеживать менструальный цикл? (меню под фазу цикла)", "type": "buttons", "options": ["Да, отслеживать", "Нет, не нужно"], "skip": true, "save_to": "cycle_tracking"}
+  ]
+}

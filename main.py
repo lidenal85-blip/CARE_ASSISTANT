@@ -29,12 +29,13 @@ async def main():
     dp = Dispatcher(storage=SQLiteStorage())
     
     import importlib
+from engine.onboarding_engine import router as onboarding_router
     handlers = [
-        "start","onboarding","menu","water","mood","plan",
         "profile","shopping_tracker","diet","notes",
         "recipes","feedback","hobby","economy","guests","share","message"
     ]
     
+    dp.include_router(onboarding_router)
     for mod_name in handlers:
         try:
             mod = importlib.import_module(f"handlers.{mod_name}")
