@@ -2,7 +2,7 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
-from db.repository import UserRepo
+from db.repository import UserRepo, ShoppingRepo
 from engine.menu_engine import get_or_create_menu, format_menu, profile_hash
 from services.gemini import GeminiError
 from keyboards.reply import MAIN_KB
@@ -35,9 +35,22 @@ async def cmd_diet(message: Message):
         menu = await get_or_create_menu(profile)
         if menu:
             text = format_menu(menu)
+            
+            # Сохраняем список покупок для /buy
+            from datetime import date, timedelta
+            today = date.today()
+            week_start = today - timedelta(days=today.weekday())
+            if menu.get("shopping"):
+                await ShoppingRepo.add_week(user["id"], week_start.isoformat(), menu["shopping"])
+            elif menu.get("meals"):
+                # Создаём упрощённый список из блюд
+                items = []
+                for m in menu["meals"]:
+                    items.append({"item": m.get("dish", "продукт"), "category": m.get("meal_type", "прочее")})
+                await ShoppingRepo.add_week(user["id"], week_start.isoformat(), items)
             await msg.edit_text(text, parse_mode="Markdown")
             await message.answer(
-                f"💡 *Сохранено в базу*: {profile_hash(profile)}\n"
+                f"🍽 *Меню готово!* В следующий раз соберу ещё быстрее 🌸"
                 "В следующий раз — мгновенно!",
                 parse_mode="Markdown", reply_markup=MAIN_KB)
         else:
