@@ -25,10 +25,8 @@ async def main():
     bot = Bot(token=settings.BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
     
-    # Движок онбординга
     dp.include_router(onboarding_router)
     
-    # Остальные хендлеры
     import importlib
     handlers = [
         "start", "menu", "water", "mood", "plan",
