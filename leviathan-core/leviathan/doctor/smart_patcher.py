@@ -204,3 +204,68 @@ def insert_before_marker(file_path: str, marker: str, new_code: str) -> bool:
     """Вставляет код перед текстовым маркером"""
     p = SmartPatcher()
     return p.patch(file_path, marker, new_code, search_type="text", position="before")
+
+    def _resolve(self, file_path):
+        p = Path(file_path) if Path(file_path).is_absolute() else self.root / file_path
+        return p if p.exists() else None
+    
+    def fix_indent(self, file_path, lineno):
+        path = self._resolve(file_path)
+        if not path:
+            return False
+        lines = path.read_text().splitlines(keepends=True)
+        idx = lineno - 1
+        if idx <= 0 or idx >= len(lines):
+            return False
+        prev_indent = ""
+        for i in range(idx - 1, -1, -1):
+            stripped = lines[i].lstrip()
+            if stripped:
+                prev_indent = lines[i][:len(lines[i]) - len(stripped)]
+                break
+        current = lines[idx].lstrip()
+        if not current.strip():
+            return False
+        new_line = prev_indent + current
+        if new_line == lines[idx]:
+            return False
+        lines[idx] = new_line
+        path.write_text("".join(lines))
+        return True
+    
+    def fix_brackets(self, file_path):
+        path = self._resolve(file_path)
+        if not path:
+            return False
+        content = path.read_text()
+        balance = {"(": 0, "[": 0, "{": 0}
+        pairs = {"(": ")", "[": "]", "{": "}"}
+        for ch in content:
+            if ch in balance:
+                balance[ch] += 1
+            elif ch in (")", "]", "}"):
+                opener = {")": "(", "]": "[", "}": "{"}[ch]
+                balance[opener] = max(0, balance[opener] - 1)
+        suffix = "".join(pairs[opener] * count for opener, count in balance.items())
+        if not suffix:
+            return False
+        path.write_text(content + "
+" + suffix)
+        return True
+    
+    def comment_broken_line(self, file_path, lineno):
+        path = self._resolve(file_path)
+        if not path:
+            return False
+        lines = path.read_text().splitlines(keepends=True)
+        idx = lineno - 1
+        if idx < 0 or idx >= len(lines):
+            return False
+        line = lines[idx]
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            return False
+        indent = line[:len(line) - len(stripped)]
+        lines[idx] = f"{indent}# [DOCTOR] {stripped}"
+        path.write_text("".join(lines))
+        return True

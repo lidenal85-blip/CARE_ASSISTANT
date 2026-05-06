@@ -1,33 +1,69 @@
-"""
-DOCTOR SYSTEM v11 — автономный агент лечения Python-проектов
-SmartPatcher (AST) + Gemini (LLM) = двухуровневое лечение
-"""
-import ast, sys, os, shutil, time, httpx
-from pathlib import Path
+"""DOCTOR SYSTEM v12 — с нормализацией ошибок и авторолбэком"""
+import ast, hashlib, json, os, re, shutil, time, httpx
 from datetime import datetime
+from pathlib import Path
 from .smart_patcher import SmartPatcher
-from leviathan.core import get_pool
 from .knowledge_base import KnowledgeBase
 
-G='\033[32m'; R='\033[31m'; Y='\033[33m'; C='\033[36m'; B='\033[1m'; X='\033[0m'
+G='\033[32m'; R='\033[31m'; Y='\033[33m'; C='\033[36m'; X='\033[0m'
+
+_DANGEROUS_PATTERNS = re.compile(r'(subprocess\.|os\.system|os\.popen|eval\(|exec\(|__import__)', re.IGNORECASE)
+
+_NORMALIZE_MAP = [
+    (re.compile(r"was never closed", re.I), "bracket_never_closed"),
+    (re.compile(r"unexpected eof", re.I), "bracket_eof"),
+    (re.compile(r"eof in multi.line", re.I), "bracket_eof"),
+    (re.compile(r"unterminated", re.I), "bracket_eof"),
+    (re.compile(r"indentation", re.I), "indent"),
+    (re.compile(r"unexpected indent", re.I), "indent"),
+    (re.compile(r"expected an indented block", re.I), "indent"),
+    (re.compile(r"invalid syntax", re.I), "syntax_simple"),
+    (re.compile(r"missing", re.I), "syntax_simple"),
+]
+
+def _normalize_error_msg(msg: str) -> str:
+    for pattern, canonical in _NORMALIZE_MAP:
+        if pattern.search(msg):
+            return canonical
+    return "complex"
+
+class KeyPool:
+    def __init__(self):
+        self._keys = []
+        self._blocked = {}
+        self._idx = 0
+        for i in range(1, 15):
+            k = os.getenv(f"GEMINI_K{i}", "").strip()
+            if k and len(k) > 10:
+                self._keys.append(k)
+    
+    def next(self):
+        now = time.time()
+        for _ in range(len(self._keys)):
+            key = self._keys[self._idx % len(self._keys)]
+            self._idx += 1
+            if self._blocked.get(key, 0) < now:
+                return key
+        return None
+    
+    def block(self, key, seconds=60):
+        self._blocked[key] = time.time() + seconds
+    
+    def __bool__(self):
+        return bool(self._keys)
 
 class DoctorSystem:
-    def __init__(self, project_root: Path | str):
+    EXCLUDE = ('__pycache__', 'sandbox', 'backups', '.egg-info', 'leviathan-core')
+    
+    def __init__(self, project_root):
         self.ROOT = Path(project_root)
         self.LOG = self.ROOT / "data" / "doctor.log"
         self.LOG.parent.mkdir(parents=True, exist_ok=True)
-        self.key = self._find_key()
         self.attempt = 0
         self.failed_files = {}
         self.patcher = SmartPatcher(str(self.ROOT))
-        self.kb = KnowledgeBase()  # ← SmartPatcher!
-    
-    def _find_key(self):
-        for i in range(1, 15):
-            k = os.getenv(f"GEMINI_K{i}", "")
-            if k and len(k) > 10:
-                return k
-        return None
+        self.kb = KnowledgeBase(self.ROOT / "data" / "doctor_knowledge.json")
+        self.keys = KeyPool()
     
     def log(self, msg, color=""):
         ts = datetime.now().strftime("%H:%M:%S")
@@ -35,234 +71,142 @@ class DoctorSystem:
         with open(self.LOG, "a") as f:
             f.write(f"[{ts}] {msg}\n")
     
+    def _classify_error(self, error):
+        canonical = _normalize_error_msg(error.msg)
+        return "bracket" if canonical.startswith("bracket") else canonical
     
-    def check_runtime_errors(self):
-        """Проверяет логи бота на рантайм-ошибки"""
-        bot_log = self.ROOT / "data" / "bot.log"
-        if not bot_log.exists():
-            return []
-        
-        errors = []
-        try:
-            lines = bot_log.read_text().split("\n")
-            for line in lines[-100:]:  # последние 100 строк
-                if "ERROR" in line or "Traceback" in line:
-                    errors.append(line.strip()[:200])
-        except Exception:
-            pass
-        
-        if errors:
-            self.log(f"📋 Найдено {len(errors)} ошибок в логах бота", Y)
-            for e in errors[-5:]:  # последние 5
-                self.log(f"   {e}", R)
-        
-        return errors
-
-
     def scan_all(self):
-        """Сканирует все .py файлы через AST"""
         errors = []
         for f in sorted(self.ROOT.rglob("*.py")):
-            if any(x in str(f) for x in ['__pycache__', 'sandbox', 'backups', '.egg-info', 'leviathan-core']):
+            if any(x in str(f) for x in self.EXCLUDE):
                 continue
             try:
                 ast.parse(f.read_text())
             except SyntaxError as e:
-                errors.append({
-                    "file": f,
-                    "error": e,
-                    "type": self._classify_error(e)
-                })
+                errors.append({"file": f, "error": e, "type": self._classify_error(e)})
         return errors
     
-    def _classify_error(self, error: SyntaxError) -> str:
-        """Классифицирует ошибку: patcher или gemini"""
-        msg = error.msg.lower()
-        # Ошибки которые патчер может исправить сам
-        if any(x in msg for x in ['indentation', 'unexpected indent', 'expected an indented block']):
-            return "indent"
-        if any(x in msg for x in ['eof', 'unexpected eof', 'unterminated']):
-            return "bracket"
-        
-        # Сложные ошибки — только Gemini
-        return "complex"
+    def _backup(self, filepath):
+        bkp_dir = self.ROOT / "data" / "backups"
+        bkp_dir.mkdir(parents=True, exist_ok=True)
+        bkp = bkp_dir / f"{filepath.name}.{datetime.now():%Y%m%d_%H%M%S}.bak"
+        shutil.copy2(filepath, bkp)
+        return bkp
     
-    # ── Уровень 1: SmartPatcher (AST, быстро, без API) ──
+    def _rollback(self, filepath, bkp):
+        shutil.copy2(bkp, filepath)
+        self.log(f"⏪ Откат: {filepath.name}", Y)
     
-    def heal_with_patcher(self, filepath: Path, error: SyntaxError, error_type: str) -> bool:
-        """Пробует исправить ошибку через SmartPatcher"""
-        self.log(f"🔧 Патчер: {filepath.name}:{error.lineno} ({error_type})...", C)
-        return self.patcher.heal(filepath, error, error_type)
-    def heal_with_gemini(self, filepath: Path, error: SyntaxError) -> str | None:
-        """Отправляет файл в Gemini для исправления"""
-        content = filepath.read_text()
-        prompt = f"""Fix the ONLY syntax error in this Python file.
-Return ONLY the corrected file inside ```python ... ``` block.
-Do NOT add comments. Do NOT change working code. Fix ONLY line {error.lineno}.
-
-FILE: {filepath.name}
-ERROR at line {error.lineno}: {error.msg}
-
-=== FULL FILE ===
-{content}
-=== END ===
-
-Return the complete fixed file:"""
-        
+    def heal_with_patcher(self, filepath, error, error_type):
+        self.log(f"🔧 Патчер: {filepath.name}:{error.lineno} [{error_type}]", C)
+        bkp = self._backup(filepath)
         try:
-            pool = get_pool()
-            entry, provider = pool.get_best(prefer="gemini")
-            resp = httpx.post(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-                json={"contents": [{"parts": [{"text": prompt}]}]},
-                params={"key": entry.value},
-                timeout=30,
-            )
-            if resp.status_code == 200:
-                pool.report(entry, code=200, model="gemini-2.5-flash")
-                result = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-                if "```" in result:
-                    result = result.split("```")[1]
-                    if result.startswith("python"): result = result[6:]
-                    result = result.strip()
-                if result and result != content:
-                    return result
+            if error_type == "indent":
+                if not self.patcher.fix_indent(str(filepath), error.lineno):
+                    return False
+            elif error_type == "bracket":
+                if not self.patcher.fix_brackets(str(filepath)):
+                    return False
+            elif error_type == "syntax_simple":
+                if not self.patcher.comment_broken_line(str(filepath), error.lineno):
+                    return False
+            else:
+                return False
+            
+            try:
+                ast.parse(filepath.read_text())
+                self.log(f"✅ Патчер: {filepath.name}", G)
+                self.kb.log_patcher_fix(error.msg, filepath.name, error.lineno, error_type)
+                return True
+            except SyntaxError:
+                self._rollback(filepath, bkp)
+                return False
         except Exception as e:
-            try: pool.report(entry, code=500, model="gemini-2.5-flash")
-            except: pass
-            self.log(f"Gemini error: {e}", R)
+            self._rollback(filepath, bkp)
+            self.log(f"❌ Патчер: {e}", R)
+            return False
+    
+    def heal_with_gemini(self, filepath, error):
+        if not self.keys:
+            return None
+        content = filepath.read_text()
+        prompt = f"Fix ONLY syntax error at line {error.lineno}: {error.msg}\n\n=== FILE ===\n{content}\n=== END ===\nReturn fixed file in ```python ... ```"
+        
+        for _ in range(3):
+            key = self.keys.next()
+            if not key:
+                break
+            try:
+                resp = httpx.post(
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+                    json={"contents": [{"parts": [{"text": prompt}]}]},
+                    params={"key": key}, timeout=30)
+                if resp.status_code == 429:
+                    self.keys.block(key, 60)
+                    continue
+                if resp.status_code != 200:
+                    continue
+                raw = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+                if "```" in raw:
+                    for part in raw.split("```")[1::2]:
+                        part = part.replace("python", "", 1).strip()
+                        if part and part != content and not _DANGEROUS_PATTERNS.search(part):
+                            return part
+            except Exception as e:
+                self.log(f"Gemini: {e}", R)
         return None
     
-    # ── Главный цикл лечения ─────────────────────────
-    
-    def heal_all(self, errors: list) -> int:
-        """
-        Двухуровневое лечение:
-        1. SmartPatcher (AST) — быстро, без API
-        2. Gemini (LLM) — только для сложных случаев
-        """
+    def heal_all(self, errors):
         fixed = 0
-        
         for e in errors:
             f = e["file"]
-            f_str = str(f)
-            self.failed_files[f_str] = self.failed_files.get(f_str, 0) + 1
-            
-            if self.failed_files[f_str] > 3:
-                self.log(f"⛔ {f.name} — пропускаем (3 попытки)", R)
+            key = str(f)
+            self.failed_files[key] = self.failed_files.get(key, 0) + 1
+            if self.failed_files[key] > 3:
+                self.log(f"⛔ {f.name} — пропуск", R)
                 continue
             
-            err = e["error"]
-            err_type = e["type"]
-            
-            # Бэкап
-            bkp_dir = self.ROOT / "data" / "backups"
-            bkp_dir.mkdir(parents=True, exist_ok=True)
-            bkp = bkp_dir / f"{f.name}.{datetime.now():%Y%m%d_%H%M%S}.bak"
-            shutil.copy2(f, bkp)
-            
-            # ── Уровень 1: Патчер ──
-            if self.heal_with_patcher(f, err, err_type):
+            if self.heal_with_patcher(f, e["error"], e["type"]):
                 fixed += 1
                 continue
             
-            # ── Уровень 2: Gemini ──
-            self.log(f"🤖 Gemini: {f.name}:{err.lineno}...", Y)
-            fixed_content = self.heal_with_gemini(f, err)
-            
+            self.log(f"🤖 Gemini: {f.name}:{e['error'].lineno}...", Y)
+            bkp = self._backup(f)
+            fixed_content = self.heal_with_gemini(f, e["error"])
             if fixed_content:
                 f.write_text(fixed_content)
                 try:
                     ast.parse(fixed_content)
-                    self.log(f"✅ Gemini исправил: {f.name}", G)
-                    self.kb.log_case(err.msg, f.name, err.lineno, fixed_content[:200])
+                    self.log(f"✅ Gemini: {f.name}", G)
+                    self.kb.log_gemini_fix(e["error"].msg, f.name, e["error"].lineno, fixed_content[:300])
                     fixed += 1
-                    continue
                 except SyntaxError:
-                    shutil.copy2(bkp, f)
-                    self.log(f"❌ Gemini не помог: {f.name}", R)
-            else:
-                self.log(f"❌ Gemini недоступен: {f.name}", R)
-        
+                    self._rollback(f, bkp)
+                    self.log(f"❌ Gemini: невалидный ответ", R)
         return fixed
     
-    
-    def learn_from_gemini(self, error_msg: str, fix_strategy: str):
-        """Сохраняет успешное исправление от Gemini в JSON-правила"""
-        import json
-        config_path = self.ROOT / "config" / "patcher_rules.json"
-        if not config_path.exists():
-            return
-        
-        rules = json.loads(config_path.read_text())
-        existing = rules.get("rules", [])
-        
-        # Проверяем — может такое правило уже есть
-        for rule in existing:
-            if rule.get("error_pattern") and rule["error_pattern"] in error_msg:
-                return  # уже знаем как чинить
-        
-        # Извлекаем ключевой паттерн из ошибки
-        # Примеры: "TypeError: can't multiply..." → "can't multiply sequence by non-int"
-        #          "SyntaxError: '(' was never closed" → "was never closed"
-        import re
-        pattern = error_msg[:100]
-        # Ищем наиболее специфичную часть ошибки
-        match = re.search(r"'(.*?)'", error_msg)  # текст в кавычках
-        if match:
-            pattern = match.group(0)  # вместе с кавычками
-        elif ':' in error_msg:
-            pattern = error_msg.split(':')[-1].strip()[:80]
-        
-        # Создаём новое правило
-        new_rule = {
-            "name": f"gemini_learned_{len(existing)+1}",
-            "error_pattern": pattern,
-            "error_type": "runtime" if "Error" in error_msg else "syntax" if "SyntaxError" in error_msg else "complex",
-            "priority": len(existing) + 1,
-            "action": "gemini_suggested",
-            "description": f"Gemini fix: {fix_strategy[:100]}",
-            "learned_at": str(__import__('datetime').datetime.now().isoformat()),
-            "times_seen": 1
-        }
-        
-        existing.append(new_rule)
-        config_path.write_text(json.dumps(rules, ensure_ascii=False, indent=2))
-        self.log(f"🎓 Новое правило от Gemini: {new_rule['name']}", G)
-
     def run_once(self):
         self.attempt += 1
         self.log(f"🔄 ЦИКЛ #{self.attempt}", C)
         errors = self.scan_all()
-        
         if not errors:
             self.log("✅ Ошибок нет", G)
             return True
-        
-        self.log(f"🐛 Найдено ошибок: {len(errors)}", Y)
-        for e in errors:
-            self.log(f"   {e['file'].name}:{e['error'].lineno}: {e['error'].msg} [{e['type']}]", R)
-        
+        self.log(f"🐛 Найдено: {len(errors)}", Y)
         fixed = self.heal_all(errors)
-        self.log(f"💊 Вылечено: {fixed}/{len(errors)} (Патчер+Gemini)", G if fixed == len(errors) else Y)
+        self.log(f"💊 Вылечено: {fixed}/{len(errors)}", G if fixed == len(errors) else Y)
         return fixed == len(errors)
     
-    def watch(self, interval: int = 30):
-        """Бесконечный цикл наблюдения"""
-        self.log("👁 АВТОПИЛОТ v11 (Патчер+Gemini)", C)
-        self.log(f"   Интервал: {interval}с", "")
-        
+    def watch(self, interval=60):
+        self.log(f"👁 АВТОПИЛОТ v12 | интервал {interval}с", C)
         while True:
             try:
-                errors = self.scan_all()
-                runtime = self.check_runtime_errors()
-                if errors or runtime:
-                    self.log(f"⚠ Ошибок: {len(errors)}", Y)
+                if self.scan_all():
                     self.run_once()
                 time.sleep(interval)
             except KeyboardInterrupt:
                 self.log("⏹ ОСТАНОВЛЕН", Y)
                 break
             except Exception as e:
-                self.log(f"💥 Сбой: {e}", R)
+                self.log(f"💥 {e}", R)
                 time.sleep(10)
