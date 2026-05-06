@@ -1,0 +1,20 @@
+{
+  "scan": {
+    "interval_seconds": 60,
+    "exclude_patterns": ["__pycache__", "backups", "sandbox", ".egg-info"],
+    "check_syntax": true,
+    "check_runtime_logs": true,
+    "log_file": "data/bot.log",
+    "max_log_lines": 200
+  },
+  "healing": {
+    "max_attempts_per_file": 3,
+    "backup_dir": "data/backups",
+    "strategies": ["patcher", "gemini_full", "gemini_line"]
+  },
+  "reporting": {
+    "telegram_admin_id": 7709651193,
+    "health_report_interval_hours": 3,
+    "error_report_immediate": true
+  }
+}

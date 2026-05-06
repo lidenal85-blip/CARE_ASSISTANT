@@ -1,0 +1,57 @@
+{
+  "rules": [
+    {
+      "name": "close_brackets",
+      "error_type": "bracket",
+      "priority": 1,
+      "action": "count_and_close",
+      "description": "Автозакрытие незакрытых скобок"
+    },
+    {
+      "name": "fix_indent",
+      "error_type": "indent",
+      "priority": 2,
+      "action": "copy_from_previous_line",
+      "description": "Копирует отступ с предыдущей строки"
+    },
+    {
+      "name": "remove_broken_line",
+      "error_type": "syntax_simple",
+      "priority": 3,
+      "action": "comment_and_skip",
+      "description": "Комментирует проблемную строку"
+    },
+    {
+      "name": "add_missing_import",
+      "error_pattern": "name '.*' is not defined",
+      "error_type": "runtime",
+      "priority": 4,
+      "action": "suggest_import",
+      "description": "Предлагает добавить импорт для NameError"
+    },
+    {
+      "name": "fix_type_cast",
+      "error_pattern": "can't multiply sequence by non-int",
+      "error_type": "runtime",
+      "priority": 5,
+      "action": "wrap_in_float",
+      "description": "Оборачивает переменные в float()"
+    },
+    {
+      "name": "fix_duplicate_key",
+      "error_pattern": "UNIQUE constraint failed",
+      "error_type": "runtime",
+      "priority": 6,
+      "action": "add_exists_check",
+      "description": "Добавляет проверку существования перед INSERT"
+    }
+  ],
+  "known_fixes": {
+    "imports": {
+      "F": "from aiogram import F",
+      "Router": "from aiogram import Router",
+      "Bot": "from aiogram import Bot",
+      "Dispatcher": "from aiogram import Dispatcher"
+    }
+  }
+}

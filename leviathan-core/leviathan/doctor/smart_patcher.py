@@ -1,3 +1,4 @@
+from pathlib import Path
 """
 engine/smart_patcher.py — Умный патчер для Python-файлов
 Основан на рекомендациях по архитектуре: AST-поиск, авто-отступы, атомарная запись.
