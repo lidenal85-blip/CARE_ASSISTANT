@@ -187,3 +187,5 @@ def cache_stats() -> dict:
     return {
         "total": len(cache["templates"]),
         "by_goal": {},
+
+}
