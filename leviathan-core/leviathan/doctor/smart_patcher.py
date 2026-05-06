@@ -249,8 +249,7 @@ def insert_before_marker(file_path: str, marker: str, new_code: str) -> bool:
         suffix = "".join(pairs[opener] * count for opener, count in balance.items())
         if not suffix:
             return False
-        path.write_text(content + "
-" + suffix)
+        path.write_text(content + "\n" + suffix)
         return True
     
     def comment_broken_line(self, file_path, lineno):
