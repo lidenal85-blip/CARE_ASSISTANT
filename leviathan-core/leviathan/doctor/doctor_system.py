@@ -6,6 +6,7 @@ import ast, sys, os, shutil, time, httpx
 from pathlib import Path
 from datetime import datetime
 from .smart_patcher import SmartPatcher
+from leviathan.core import get_pool
 from .knowledge_base import KnowledgeBase
 
 G='\033[32m'; R='\033[31m'; Y='\033[33m'; C='\033[36m'; B='\033[1m'; X='\033[0m'
@@ -167,13 +168,16 @@ ERROR at line {error.lineno}: {error.msg}
 Return the complete fixed file in ```python ... ``` block."""
         
         try:
+            pool = get_pool()
+            entry, provider = pool.get_best(prefer="gemini")
             resp = httpx.post(
                 "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
                 json={"contents": [{"parts": [{"text": prompt}]}]},
-                params={"key": self.key},
+                params={"key": entry.value},
                 timeout=30,
             )
             if resp.status_code == 200:
+                pool.report(entry, code=200, model="gemini-2.5-flash")
                 result = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
                 if "```" in result:
                     result = result.split("```")[1]
@@ -182,6 +186,8 @@ Return the complete fixed file in ```python ... ``` block."""
                 if result and result != content:
                     return result
         except Exception as e:
+            try: pool.report(entry, code=500, model="gemini-2.5-flash")
+            except: pass
             self.log(f"Gemini error: {e}", R)
         return None
     
