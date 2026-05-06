@@ -32,7 +32,7 @@ async def cmd_menu(message: Message):
         weight=user.get("weight", 60),
         height=user.get("height", 165),
         activity=user.get("activity", "умеренная"),
-_fp = _safe_food_prefs(user)
+# [DOCTOR] _fp = _safe_food_prefs(user)
         budget=_fp.get("budget", "средний"),
         loved=", ".join(json.loads(_fp.get("loved", "[]") or "[]")),
         hated=", ".join(json.loads(_fp.get("hated", "[]") or "[]")),

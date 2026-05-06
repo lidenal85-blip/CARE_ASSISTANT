@@ -2,9 +2,9 @@
   "errors": {},
   "rules": [],
   "stats": {
-    "total": 2,
+    "total": 6,
     "auto_fixed": 0,
     "gemini_fixed": 0,
-    "patcher_fixed": 1
+    "patcher_fixed": 5
   }
 }

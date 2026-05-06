@@ -22,3 +22,13 @@ class KnowledgeBase:
     
     def stats(self):
         return self.data["stats"]
+
+    def log_patcher_fix(self, error_msg="", file_name="", lineno=0, strategy=""):
+        self.data["stats"]["patcher_fixed"] = self.data["stats"].get("patcher_fixed", 0) + 1
+        self.data["stats"]["total"] = self.data["stats"].get("total", 0) + 1
+        self.save()
+    
+    def log_gemini_fix(self, error_msg="", file_name="", lineno=0, fix_sample=""):
+        self.data["stats"]["gemini_fixed"] = self.data["stats"].get("gemini_fixed", 0) + 1
+        self.data["stats"]["total"] = self.data["stats"].get("total", 0) + 1
+        self.save()
