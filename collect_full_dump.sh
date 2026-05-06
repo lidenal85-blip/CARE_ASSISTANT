@@ -1,22 +1,16 @@
 #!/bin/bash
-OUTPUT=~/zabota_plus/FULL_DUMP.md
-echo "# 📊 ПОЛНЫЙ ДАМП ПРОЕКТА ZABOTA_PLUS" > $OUTPUT
+OUTPUT=~/FULL_PROJECT_DUMP.md
+echo "# 📊 ПОЛНЫЙ ДАМП ПРОЕКТА ZABOTA_PLUS + LEVIATHAN" > $OUTPUT
 echo "_Собрано: $(date)_" >> $OUTPUT
-echo "_Окружение: Termux on Android | Python 3.13 | aiogram 3.x_" >> $OUTPUT
 echo "" >> $OUTPUT
 
-echo "## 📁 СТРУКТУРА ПРОЕКТА" >> $OUTPUT
+echo "## 📁 СТРУКТУРА" >> $OUTPUT
 echo '```' >> $OUTPUT
-find ~/zabota_plus/ -type f -not -path '*__pycache__*' -not -path '*.bak' -not -path '*backups*' -not -name '*.db' -not -name '*.log' -not -name '*.pid' | sort >> $OUTPUT
-echo '```' >> $OUTPUT
-
-echo "" >> $OUTPUT
-echo "## 📁 СТРУКТУРА LEVIATHAN-CORE" >> $OUTPUT
-echo '```' >> $OUTPUT
-find ~/leviathan-core/ -type f -not -path '*__pycache__*' -not -path '*.egg-info*' | sort >> $OUTPUT
+find ~/zabota_plus -type f -not -path "*__pycache__*" -not -path "*.bak" -not -name "*.db" -not -name "*.log" -not -name "*.pid" | sort >> $OUTPUT
+find ~/leviathan-core -type f -not -path "*__pycache__*" -not -path "*.egg-info*" | sort >> $OUTPUT
 echo '```' >> $OUTPUT
 
-dump_file() {
+dump() {
     if [ -f "$1" ]; then
         echo "" >> $OUTPUT
         echo "---" >> $OUTPUT
@@ -27,27 +21,57 @@ dump_file() {
     fi
 }
 
-# Все файлы заботы
-for f in $(find ~/zabota_plus/ -type f -name "*.py" -not -path '*__pycache__*' -not -path '*backups*' -not -path '*sandbox*' | sort); do
-    dump_file "$f"
-done
+# Основные файлы
+dump ~/zabota_plus/main.py
+dump ~/zabota_plus/run_doctor.py
+dump ~/zabota_plus/Dockerfile
+dump ~/zabota_plus/docker-compose.yml
+dump ~/zabota_plus/requirements.txt
 
 # Конфиги
-dump_file ~/zabota_plus/.env.example
-dump_file ~/zabota_plus/requirements.txt
-dump_file ~/zabota_plus/pyproject.toml 2>/dev/null
+dump ~/zabota_plus/config/onboarding.json
+dump ~/zabota_plus/config/menus.json
+dump ~/zabota_plus/config/keyboards.json
+dump ~/zabota_plus/config/replies.json
+dump ~/zabota_plus/config/doctor.json
+dump ~/zabota_plus/config/patcher_rules.json
 
-# leviathan-core
-for f in $(find ~/leviathan-core/ -type f -name "*.py" -not -path '*__pycache__*' -not -path '*.egg-info*' | sort); do
-    dump_file "$f"
-done
-dump_file ~/leviathan-core/pyproject.toml
+# Движки
+dump ~/zabota_plus/engine/onboarding_engine.py
+dump ~/zabota_plus/engine/menu_engine.py
+dump ~/zabota_plus/engine/html_generator.py
+dump ~/zabota_plus/engine/doctor_monitor.py
+
+# Хендлеры
+for f in ~/zabota_plus/handlers/*.py; do dump "$f"; done
+
+# Сервисы
+dump ~/zabota_plus/services/gemini.py
+dump ~/zabota_plus/services/diet_planner.py
+dump ~/zabota_plus/services/price_checker.py
+
+# БД
+dump ~/zabota_plus/db/connection.py
+dump ~/zabota_plus/db/repository.py
+
+# Leviathan Core
+dump ~/leviathan-core/leviathan/core/orchestrator.py
+dump ~/leviathan-core/leviathan/core/__init__.py
+dump ~/leviathan-core/leviathan/doctor/doctor_system.py
+dump ~/leviathan-core/leviathan/doctor/smart_patcher.py
+dump ~/leviathan-core/leviathan/doctor/knowledge_base.py
+dump ~/leviathan-core/leviathan/core/security/firewall.py
+dump ~/leviathan-core/leviathan/core/security/normalizer.py
+dump ~/leviathan-core/leviathan/memory/storage.py
+dump ~/leviathan-core/pyproject.toml
 
 echo "" >> $OUTPUT
 echo "## 📊 СТАТИСТИКА" >> $OUTPUT
-echo "- Python файлов: $(find ~/zabota_plus/ -name '*.py' -not -path '*__pycache__*' | wc -l)" >> $OUTPUT
-echo "- Строк кода: $(find ~/zabota_plus/ -name '*.py' -not -path '*__pycache__*' -exec cat {} + | wc -l)" >> $OUTPUT
+echo "- Python файлов: $(find ~/zabota_plus ~/leviathan-core -name '*.py' -not -path '*__pycache__*' | wc -l)" >> $OUTPUT
+echo "- Строк кода: $(find ~/zabota_plus ~/leviathan-core -name '*.py' -not -path '*__pycache__*' -exec cat {} + | wc -l)" >> $OUTPUT
 echo "- Хендлеров: $(ls ~/zabota_plus/handlers/*.py 2>/dev/null | wc -l)" >> $OUTPUT
 echo "- Сервисов: $(ls ~/zabota_plus/services/*.py 2>/dev/null | wc -l)" >> $OUTPUT
+echo "- JSON-правил патчера: $(python3 -c 'import json; print(len(json.load(open("config/patcher_rules.json"))["rules"]))' 2>/dev/null)" >> $OUTPUT
+echo "- Gemini ключей: $(grep -c 'GEMINI_K' ~/zabota_plus/.env)" >> $OUTPUT
 
 echo "✅ Дамп: $OUTPUT ($(wc -l < $OUTPUT) строк)"

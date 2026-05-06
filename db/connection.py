@@ -91,4 +91,13 @@ async def init_db():
             makes_happy TEXT DEFAULT '[]',
             makes_angry TEXT DEFAULT '[]'
         )""")
+
+        await conn.execute("""CREATE TABLE IF NOT EXISTS cached_menus (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_hash TEXT UNIQUE NOT NULL,
+            menu_json TEXT NOT NULL,
+            shopping_json TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            used_count INTEGER DEFAULT 1
+        )""")
         await conn.commit()

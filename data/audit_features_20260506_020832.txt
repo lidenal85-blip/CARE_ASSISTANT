@@ -1,0 +1,159 @@
+═══════════════════════════════════════════════════════
+  🩺 АУДИТ ФУНКЦИОНАЛА — Wed May  6 02:08:32 +05 2026
+═══════════════════════════════════════════════════════
+
+
+─── 1. АРХИТЕКТУРА ───
+
+✅ config/onboarding.json — JSON-конфиг онбординга
+🔴 config/onboarding.json — Файл не найден
+✅ config/menus.json — JSON-кэш меню
+✅ config/keyboards.json — JSON-конфиг клавиатур
+✅ config/replies.json — JSON-конфиг ответов
+✅ engine/onboarding_engine.py — Движок онбординга
+✅ engine/menu_engine.py — Движок меню (JSON+Gemini)
+✅ engine/smart_patcher.py — AST-патчер
+✅ main.py импортирует engine — Движок подключён
+
+─── 2. ФУНКЦИОНАЛ БОТА ───
+
+✅ handlers/guests.py — 🎉 Гости
+✅ handlers/share.py — 📤 Поделиться списком
+✅ handlers/mood.py — 😊 Настроение — дневник
+✅ handlers/notes.py — 📝 Заметки
+✅ handlers/profile.py — 👤 Профиль — данные пользователя
+✅ handlers/menu.py — 🍽 Меню — меню на неделю
+✅ handlers/start.py — /start, /help, /reset
+✅ handlers/water.py — 💧 Вода — трекер воды
+✅ handlers/plan.py — 📋 План — план на день
+✅ handlers/message.py — 💬 Companion — эмпатические ответы
+✅ handlers/shopping_tracker.py — 🛒 Покупки — список с ценами
+✅ handlers/feedback.py — 📝 Отзыв — обратная связь
+✅ handlers/recipes.py — 🍳 Рецепты — поиск по ингредиентам
+✅ handlers/economy.py — 💰 Экономия
+✅ handlers/hobby.py — 🎨 Хобби
+✅ handlers/diet.py — 🥗 Диета — персональный план
+
+─── 3. БАЗА ДАННЫХ ───
+
+✅ db/connection.py — Контекстный менеджер
+✅ db/repository.py — CRUD с whitelist
+✅ get_db() context manager — Контекстный менеджер
+✅ ALLOWED_FIELDS whitelist — Защита от SQL injection
+✅ Таблица users — Создаётся
+✅ Таблица goals — Создаётся
+✅ Таблица chores — Создаётся
+✅ Таблица shopping_list — Создаётся
+✅ Таблица water_intake — Создаётся
+✅ Таблица mood_entries — Создаётся
+✅ Таблица notes — Создаётся
+✅ Таблица meals — Создаётся
+✅ Таблица hobbies — Создаётся
+✅ Таблица food_preferences — Создаётся
+✅ Таблица mood_triggers — Создаётся
+✅ Таблица cached_menus — Создаётся
+⚠️  Поле cycle_tracking — Не добавлено
+
+─── 4. БЕЗОПАСНОСТЬ ───
+
+✅ Prompt Firewall — Защита от инъекций
+✅ Input Normalizer — NFKC нормализация
+✅ Input Sanitizer — Санитайзер
+✅ Firewall в gemini.py — Проверка промтов
+
+─── 5. KEYPOOL ───
+
+✅ KeyPool v2 — Production-класс
+✅ Exponential Backoff — 429→60s×2^N
+✅ Gemini→Groq fallback — Авто-переключение
+✅ 14 Gemini ключей — Загружаются
+✅ 5 Groq ключей — Загружаются
+
+─── 6. ДЕПЛОЙ ───
+
+✅ Dockerfile — Контейнеризация
+✅ docker-compose.yml — Оркестрация
+✅ .dockerignore — Исключения
+✅ .gitignore — Git исключения
+✅ .env в gitignore — Ключи не в репе
+
+─── 7. СИНТАКСИС ───
+
+  ✅ db/connection.py
+  ✅ db/repository.py
+  ✅ db/__init__.py
+  ✅ states/onboarding.py
+  ✅ states/__init__.py
+  ✅ handlers/onboarding.py
+  ✅ handlers/start.py
+  ✅ handlers/menu.py
+  ✅ handlers/water.py
+  ✅ handlers/mood.py
+  ✅ handlers/plan.py
+  ✅ handlers/profile.py
+  ✅ handlers/shopping.py
+  ✅ handlers/hobby.py
+  ✅ handlers/check.py
+  ✅ handlers/feedback.py
+  ✅ handlers/recipes.py
+  ✅ handlers/overlay.py
+  ✅ handlers/diet.py
+  ✅ handlers/shopping_tracker.py
+  ✅ handlers/share.py
+  ✅ handlers/guests.py
+  ✅ handlers/economy.py
+  ✅ handlers/notes.py
+  ✅ handlers/__init__.py
+  ✅ handlers/message.py
+  ✅ services/gemini.py
+  ✅ services/companion.py
+  ✅ services/scheduler_service.py
+  ✅ services/nutrition.py
+  ✅ services/recipes.py
+  ✅ services/menu_planner.py
+  ✅ services/diet_planner.py
+  ✅ services/price_checker.py
+  ✅ services/price_service.py
+  ✅ services/seasonal.py
+  ✅ services/store_compare.py
+  ✅ services/storage_tips.py
+  ✅ services/weekly_report.py
+  ✅ services/__init__.py
+  ✅ services/fsm_storage.py
+  ✅ models/schemas.py
+  ✅ models/__init__.py
+  ✅ keyboards/reply.py
+  ✅ keyboards/__init__.py
+  ✅ zabota_plus/main.py
+  ✅ app_config/settings.py
+  ✅ app_config/prompts.py
+  ✅ app_config/__init__.py
+  ✅ zabota_plus/run_bot.py
+  ✅ doctor_core/doctor_system.py
+  ✅ zabota_plus/run_doctor.py
+  ✅ security/__init__.py
+  ✅ security/normalizer.py
+  ✅ security/sanitizer.py
+  ✅ security/firewall.py
+  ✅ core/__init__.py
+  ✅ core/orchestrator.py
+  ✅ doctor/__init__.py
+  ✅ doctor/doctor_system.py
+  ✅ doctor/__main__.py
+  ✅ leviathan/__init__.py
+  ✅ memory/__init__.py
+  ✅ memory/storage.py
+  ✅ engine/onboarding_engine.py
+  ✅ engine/smart_patcher.py
+  ✅ engine/menu_engine.py
+
+─── 8. JSON ───
+
+✅ keyboards.json — Валидный JSON
+✅ menus.json — Валидный JSON
+✅ onboarding.json — Валидный JSON
+✅ replies.json — Валидный JSON
+
+═══════════════════════════════════════════════════════
+  ИТОГО: PASS=58 FAIL=1 WARN=1 | 96%
+═══════════════════════════════════════════════════════

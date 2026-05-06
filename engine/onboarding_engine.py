@@ -104,10 +104,6 @@ class OnboardingEngine:
         if existing:
             user_id = existing["id"]
         else:
-            existing = await UserRepo.get_by_telegram(message.from_user.id)
-        if existing:
-            user_id = existing["id"]
-        else:
             user_id = await UserRepo.create(message.from_user.id)
         await UserRepo.update(user_id,
             name=data.get("name"), age=data.get("age"),
@@ -116,11 +112,11 @@ class OnboardingEngine:
         await GoalRepo.add(user_id, data.get("goal", ""))
         
         # Рассчитываем BMR
-        w, h, a = data.get("weight", 60), data.get("height", 165), data.get("age", 25)
+        w, h, a = float(data.get("weight", 60)), float(data.get("height", 165)), float(data.get("age", 25))
         if data.get("gender") == "Женский":
             bmr = 447.6 + (9.2 * w) + (3.1 * h) - (4.3 * a)
         else:
-            bmr = 88.36 + (13.4 * float(w)) + (4.8 * float(h)) - (5.7 * float(a))
+            bmr = 88.36 + (13.4 * w) + (4.8 * h) - (5.7 * a)
         
         await message.answer(
             f"✨ *{data.get('name', 'Подруга')}, готово!*\n\n"

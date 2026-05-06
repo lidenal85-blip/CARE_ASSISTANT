@@ -1,0 +1,10 @@
+{
+  "errors": {},
+  "rules": [],
+  "stats": {
+    "total": 2,
+    "auto_fixed": 0,
+    "gemini_fixed": 0,
+    "patcher_fixed": 1
+  }
+}

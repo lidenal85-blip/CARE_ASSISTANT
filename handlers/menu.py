@@ -2,7 +2,7 @@ from keyboards.reply import MAIN_KB
 """
 handlers/menu.py — /menu — меню на сегодня/неделю
 """
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
 from db.repository import UserRepo, MealRepo
