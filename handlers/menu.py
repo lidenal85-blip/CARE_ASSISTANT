@@ -6,7 +6,7 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message
 from db.repository import UserRepo, MealRepo
-from services.gemini import ask
+from services.gemini import ask, _safe_food_prefs, _parse_gemini_json
 from app_config.prompts import MENU_PROMPT, MENU_SYSTEM
 from datetime import date, timedelta
 import json
@@ -32,9 +32,10 @@ async def cmd_menu(message: Message):
         weight=user.get("weight", 60),
         height=user.get("height", 165),
         activity=user.get("activity", "умеренная"),
-        budget=(user.get("food_preferences", {}) or {}).get("budget", "средний"),
-        loved=", ".join(json.loads((user.get("food_preferences", {}) or {}).get("loved", "[]") or "[]")),
-        hated=", ".join(json.loads((user.get("food_preferences", {}) or {}).get("hated", "[]") or "[]")),
+        _fp = _safe_food_prefs(user)
+        budget=_fp.get("budget", "средний"),
+        loved=", ".join(json.loads(_fp.get("loved", "[]") or "[]")),
+        hated=", ".join(json.loads(_fp.get("hated", "[]") or "[]")),
         allergies=user.get("health_notes", {}).get("allergies", "нет") if isinstance(user.get("health_notes"), dict) else "нет",
         week_start=week_start.isoformat()
     )
@@ -42,10 +43,7 @@ async def cmd_menu(message: Message):
     response = await ask(prompt, MENU_SYSTEM)
     
     try:
-        clean = response.strip()
-        if "```" in clean:
-            clean = clean.split("```")[1].replace("json", "").strip()
-        data = json.loads(clean)
+        data = _parse_gemini_json(response)
         
         await MealRepo.save_week(user["id"], week_start.isoformat(), data["meals"])
         

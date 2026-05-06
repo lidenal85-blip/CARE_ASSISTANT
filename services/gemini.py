@@ -21,6 +21,34 @@ def extract_json_from_gemini(raw_text: str):
     except Exception:
         return None
 
+
+import re
+
+def _safe_food_prefs(user: dict) -> dict:
+    fp = user.get("food_preferences")
+    if not fp:
+        return {}
+    if isinstance(fp, dict):
+        return fp
+    if isinstance(fp, str):
+        try:
+            import json
+            return json.loads(fp)
+        except Exception:
+            return {}
+    return {}
+
+def _parse_gemini_json(raw: str) -> dict:
+    import json
+    text = raw.strip()
+    m = re.search(r'```(?:json)?\s*(\{.*?\}|\[.*?\])\s*```', text, re.DOTALL)
+    if m:
+        return json.loads(m.group(1))
+    m = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
+    if m:
+        return json.loads(m.group(1))
+    raise ValueError(f"JSON не найден: {text[:100]}")
+
 class GeminiError(Exception): pass
 
 # URL для разных провайдеров
