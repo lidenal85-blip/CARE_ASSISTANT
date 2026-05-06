@@ -83,8 +83,7 @@ class DoctorSystem:
             return "indent"
         if any(x in msg for x in ['eof', 'unexpected eof', 'unterminated']):
             return "bracket"
-        if any(x in msg for x in [':', 'missing', 'invalid syntax']):
-            return "syntax_simple"
+        
         # Сложные ошибки — только Gemini
         return "complex"
     
