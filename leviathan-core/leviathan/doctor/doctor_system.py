@@ -90,68 +90,9 @@ class DoctorSystem:
     # ── Уровень 1: SmartPatcher (AST, быстро, без API) ──
     
     def heal_with_patcher(self, filepath: Path, error: SyntaxError, error_type: str) -> bool:
-        """Пробует исправить ошибку через AST-патчер"""
+        """Пробует исправить ошибку через SmartPatcher"""
         self.log(f"🔧 Патчер: {filepath.name}:{error.lineno} ({error_type})...", C)
-        
-        try:
-            rel_path = str(filepath.relative_to(self.ROOT))
-            
-            if error_type == "indent":
-                # Исправляем отступы — берём соседнюю строку и выравниваем
-                lines = filepath.read_text().split("\n")
-                lineno = error.lineno - 1
-                if lineno > 0:
-                    # Берём отступ предыдущей строки
-                    prev = lines[lineno - 1] if lineno > 0 else ""
-                    prev_indent = len(prev) - len(prev.lstrip())
-                    
-                    # Текущая строка — добавляем правильный отступ
-                    cur = lines[lineno].lstrip()
-                    lines[lineno] = " " * prev_indent + cur
-                    filepath.write_text("\n".join(lines))
-                    
-                    try:
-                        ast.parse(filepath.read_text())
-                        self.log(f"✅ Патчер исправил: {filepath.name}", G)
-                        return True
-                    except SyntaxError:
-                        pass
-            
-            elif error_type == "bracket":
-                # Ищем незакрытые скобки
-                content = filepath.read_text()
-                for char, close in [('(', ')'), ('[', ']'), ('{', '}')]:
-                    if content.count(char) > content.count(close):
-                        content += "\n" + close * (content.count(char) - content.count(close))
-                        filepath.write_text(content)
-                        try:
-                            ast.parse(filepath.read_text())
-                            self.log(f"✅ Патчер закрыл скобки: {filepath.name}", G)
-                            return True
-                        except SyntaxError:
-                            pass
-            
-            elif error_type == "syntax_simple":
-                # Удаляем проблемную строку (последнее средство)
-                lines = filepath.read_text().split("\n")
-                lineno = max(0, error.lineno - 1)
-                lines[lineno] = f"# [DOCTOR] removed: {lines[lineno].strip()[:50]}"
-                filepath.write_text("\n".join(lines))
-                try:
-                    ast.parse(filepath.read_text())
-                    self.log(f"⚠ Патчер удалил строку: {filepath.name}:{error.lineno}", Y)
-                    return True
-                except SyntaxError:
-                    pass
-            
-            return False
-            
-        except Exception as e:
-            self.log(f"❌ Патчер ошибка: {e}", R)
-            return False
-    
-    # ── Уровень 2: Gemini (LLM, медленно, тратит ключи) ──
-    
+        return self.patcher.heal(filepath, error, error_type)
     def heal_with_gemini(self, filepath: Path, error: SyntaxError) -> str | None:
         """Отправляет файл в Gemini для исправления"""
         content = filepath.read_text()
