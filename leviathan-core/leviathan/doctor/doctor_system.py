@@ -246,6 +246,38 @@ Return the complete fixed file:"""
         
         return fixed
     
+    
+    def learn_from_gemini(self, error_msg: str, fix_strategy: str):
+        """Сохраняет успешное исправление от Gemini в JSON-правила"""
+        import json
+        config_path = self.ROOT / "config" / "patcher_rules.json"
+        if not config_path.exists():
+            return
+        
+        rules = json.loads(config_path.read_text())
+        existing = rules.get("rules", [])
+        
+        # Проверяем — может такое правило уже есть
+        for rule in existing:
+            if rule.get("error_pattern") and rule["error_pattern"] in error_msg:
+                return  # уже знаем как чинить
+        
+        # Создаём новое правило
+        new_rule = {
+            "name": f"gemini_learned_{len(existing)+1}",
+            "error_pattern": error_msg[:100],
+            "error_type": "runtime" if "Error" in error_msg else "syntax",
+            "priority": len(existing) + 1,
+            "action": "gemini_suggested",
+            "description": f"Gemini fix: {fix_strategy[:100]}",
+            "learned_at": str(__import__('datetime').datetime.now().isoformat()),
+            "times_seen": 1
+        }
+        
+        existing.append(new_rule)
+        config_path.write_text(json.dumps(rules, ensure_ascii=False, indent=2))
+        self.log(f"🎓 Новое правило от Gemini: {new_rule['name']}", G)
+
     def run_once(self):
         self.attempt += 1
         self.log(f"🔄 ЦИКЛ #{self.attempt}", C)
