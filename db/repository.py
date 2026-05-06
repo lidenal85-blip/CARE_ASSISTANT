@@ -6,11 +6,15 @@ from .connection import get_db
 
 class UserRepo:
     ALLOWED_FIELDS = {"name", "age", "gender", "weight", "height",
-                       "wake_up", "sleep_time", "sleep_hours", "stress", "activity", "work"}
+                       "wake_up", "sleep_time", "sleep_hours", "stress", "activity", "work", "body_type", "eating_behavior", "meals_per_day", "cooking_time", "cooking_skill", "kitchen_equipment", "region", "medical_conditions", "fitness_goal", "takes_supplements", "cooking_for"}
     
     @staticmethod
     async def create(telegram_id: int, **kwargs) -> int:
         async with get_db() as conn:
+            cursor = await conn.execute("SELECT id FROM users WHERE telegram_id=?", (telegram_id,))
+            row = await cursor.fetchone()
+            if row:
+                return row["id"]
             cursor = await conn.execute(
                 "INSERT INTO users (telegram_id) VALUES (?)",
                 (telegram_id,)
