@@ -5,21 +5,24 @@
       "error_type": "bracket",
       "priority": 1,
       "action": "count_and_close",
-      "description": "Автозакрытие незакрытых скобок"
+      "description": "Автозакрытие незакрытых скобок",
+      "error_pattern": "was never closed"
     },
     {
       "name": "fix_indent",
       "error_type": "indent",
       "priority": 2,
       "action": "copy_from_previous_line",
-      "description": "Копирует отступ с предыдущей строки"
+      "description": "Копирует отступ с предыдущей строки",
+      "error_pattern": "indentation"
     },
     {
       "name": "remove_broken_line",
       "error_type": "syntax_simple",
       "priority": 3,
       "action": "comment_and_skip",
-      "description": "Комментирует проблемную строку"
+      "description": "Комментирует проблемную строку",
+      "error_pattern": "invalid syntax"
     },
     {
       "name": "add_missing_import",
