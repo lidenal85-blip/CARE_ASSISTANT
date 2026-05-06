@@ -261,11 +261,23 @@ Return the complete fixed file:"""
             if rule.get("error_pattern") and rule["error_pattern"] in error_msg:
                 return  # уже знаем как чинить
         
+        # Извлекаем ключевой паттерн из ошибки
+        # Примеры: "TypeError: can't multiply..." → "can't multiply sequence by non-int"
+        #          "SyntaxError: '(' was never closed" → "was never closed"
+        import re
+        pattern = error_msg[:100]
+        # Ищем наиболее специфичную часть ошибки
+        match = re.search(r"'(.*?)'", error_msg)  # текст в кавычках
+        if match:
+            pattern = match.group(0)  # вместе с кавычками
+        elif ':' in error_msg:
+            pattern = error_msg.split(':')[-1].strip()[:80]
+        
         # Создаём новое правило
         new_rule = {
             "name": f"gemini_learned_{len(existing)+1}",
-            "error_pattern": error_msg[:100],
-            "error_type": "runtime" if "Error" in error_msg else "syntax",
+            "error_pattern": pattern,
+            "error_type": "runtime" if "Error" in error_msg else "syntax" if "SyntaxError" in error_msg else "complex",
             "priority": len(existing) + 1,
             "action": "gemini_suggested",
             "description": f"Gemini fix: {fix_strategy[:100]}",
