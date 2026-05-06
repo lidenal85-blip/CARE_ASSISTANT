@@ -89,7 +89,6 @@ async def create_individual_diet(telegram_id: int, user_profile: dict) -> dict |
         stress=user_profile.get("stress", "средний"),
         sleep_hours=user_profile.get("sleep_hours", "7-8"),
         _fp = _safe_food_prefs(user_profile)
-        import json
         budget=_fp.get("budget", "средний"),
         loved=", ".join(json.loads(_fp.get("loved", "[]") or "[]")),
         hated=", ".join(json.loads(_fp.get("hated", "[]") or "[]")),
