@@ -119,6 +119,21 @@ async def create_individual_diet(telegram_id: int, user_profile: dict) -> dict |
         return None
 
 
+
+def sync_shopping_list(menu_data: dict) -> list:
+    """Агрегирует ингредиенты из меню в список покупок"""
+    ingredients = []
+    for meal in menu_data.get("meals", []):
+        dish = meal.get("dish", "")
+        # Извлекаем продукты из названия блюда
+        dish = dish.replace("→", ",").replace("с", ",").replace(" и ", ",")
+        parts = [p.strip() for p in dish.split(",") if p.strip() and len(p.strip()) > 3]
+        ingredients.extend(parts)
+    # Убираем дубли и не-продукты
+    stop_words = ("ккал", "запеченная", "тушеная", "большая", "порция", "горсть", "шт", "цельнозерновой")
+    unique = list(set(i for i in ingredients if not i.lower().startswith(stop_words)))
+    return [{"item": i[:50], "category": "прочее"} for i in unique[:30]]
+
 def format_diet_message(data: dict) -> str:
     """Форматирует план питания в читаемое сообщение."""
     calc = data["calculations"]

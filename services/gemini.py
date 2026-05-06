@@ -7,6 +7,20 @@ _normalizer = InputNormalizer()
 _sanitizer = InputSanitizer()
 _firewall = PromptFirewall()
 
+
+import re
+
+def extract_json_from_gemini(raw_text: str):
+    """Извлекает JSON даже если Gemini добавил Markdown или комментарии"""
+    try:
+        match = re.search(r'(\{.*\}|\[.*\])', raw_text, re.DOTALL)
+        if match:
+            import json
+            return json.loads(match.group(0))
+        return json.loads(raw_text)
+    except Exception:
+        return None
+
 class GeminiError(Exception): pass
 
 # URL для разных провайдеров
