@@ -157,6 +157,8 @@ class DoctorSystem:
         """Отправляет файл в Gemini для исправления"""
         content = filepath.read_text()
         prompt = f"""Fix the ONLY syntax error in this Python file.
+Return ONLY the corrected file inside ```python ... ``` block.
+Do NOT add comments. Do NOT change working code. Fix ONLY line {error.lineno}.
 
 FILE: {filepath.name}
 ERROR at line {error.lineno}: {error.msg}
@@ -165,7 +167,7 @@ ERROR at line {error.lineno}: {error.msg}
 {content}
 === END ===
 
-Return the complete fixed file in ```python ... ``` block."""
+Return the complete fixed file:"""
         
         try:
             pool = get_pool()
