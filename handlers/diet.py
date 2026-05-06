@@ -40,14 +40,10 @@ async def cmd_diet(message: Message):
             from datetime import date, timedelta
             today = date.today()
             week_start = today - timedelta(days=today.weekday())
-            if menu.get("shopping"):
-                await ShoppingRepo.add_week(user["id"], week_start.isoformat(), menu["shopping"])
-            elif menu.get("meals"):
-                # Создаём упрощённый список из блюд
-                items = []
-                for m in menu["meals"]:
-                    items.append({"item": m.get("dish", "продукт"), "category": m.get("meal_type", "прочее")})
-                await ShoppingRepo.add_week(user["id"], week_start.isoformat(), items)
+            # Извлекаем продукты из блюд через Gemini
+            shopping_items = await extract_shopping_list(menu)
+            if shopping_items:
+                await ShoppingRepo.add_week(user["id"], week_start.isoformat(), shopping_items)
             await msg.edit_text(text, parse_mode="Markdown")
             await message.answer(
                 f"🍽 *Меню готово!* В следующий раз соберу ещё быстрее 🌸"
